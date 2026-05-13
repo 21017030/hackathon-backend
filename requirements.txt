@@ -3,7 +3,6 @@ uvicorn
 python-dotenv
 supabase
 python-multipart
-jupyter-server-proxy
 pymupdf
 google-genai
 bcrypt

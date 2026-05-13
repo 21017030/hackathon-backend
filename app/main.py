@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,14 +13,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 # FastAPI 애플리케이션 초기화
 app = FastAPI(title="Hackathon API")
 
-# CORS(Cross-Origin Resource Sharing) 설정
-# 다른 도메인(예: 프론트엔드 서버)에서 이 API에 접근할 수 있도록 허용합니다.
+# CORS 허용 origins: 환경변수 ALLOWED_ORIGINS (콤마 구분) 또는 로컬 개발 기본값
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # 프론트엔드 개발 환경 포트 허용
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"], # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE 등)
-    allow_headers=["*"], # 모든 HTTP 헤더 허용
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 기능별 API 라우터 등록
