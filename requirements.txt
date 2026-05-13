@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+supabase
+python-multipart
+jupyter-server-proxy
+pymupdf
+google-genai
+bcrypt
+python-pptx
+python-docx
