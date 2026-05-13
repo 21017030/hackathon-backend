@@ -24,8 +24,8 @@ def gemini_call(fn, *args, max_retries: int = 3, initial_delay: float = 5.0, **k
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-CHAT_MODEL = "gemini-3.1-flash-lite"      # 채팅 답변 생성에 사용하는 모델
-REWRITE_MODEL = "gemini-3.1-flash-lite"   # 팔로업 쿼리 재작성에 사용하는 모델
+CHAT_MODEL = "gemini-2.5-flash-lite"      # 채팅 답변 생성에 사용하는 모델
+REWRITE_MODEL = "gemini-2.5-flash-lite"   # 팔로업 쿼리 재작성에 사용하는 모델
 EMBEDDING_MODEL = "gemini-embedding-001"  # 텍스트 → 벡터 변환 모델
 EMBEDDING_DIMENSIONS = 1536  # pgvector HNSW 인덱스 호환 (최대 2000차원)
 
