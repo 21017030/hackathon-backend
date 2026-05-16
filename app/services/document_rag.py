@@ -7,7 +7,9 @@ import fitz  # PyMuPDF
 from google.genai import types
 
 from app.core.supabase import supabase
-from app.core.gemini import client, CHAT_MODEL, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, CHUNK_SIZE, gemini_call
+from app.core.gemini import (
+    client, CHAT_MODEL, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, CHUNK_SIZE, gemini_call,                                                                                              
+    EXTRACT_TEMPERATURE, EXTRACT_TOP_P, EXTRACT_TOP_K, EXTRACT_MAX_OUTPUT_TOKENS, )
 
 logger = logging.getLogger(__name__)
 
@@ -35,19 +37,25 @@ def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
         )
 
         # 3. Gemini 모델을 사용하여 텍스트 추출 명령 실행
-        response = gemini_call(
+        response = gemini_call(                                                                                                                                                              
             client.models.generate_content,
-            model=CHAT_MODEL,
-            contents=[
+            model=CHAT_MODEL,                                                                                                                                                                
+            contents=[       
                 uploaded_file,
-                "이 PDF 문서의 전체 내용을 텍스트로 추출해주세요. "
-                "각 페이지가 시작될 때마다 반드시 '[N페이지]' 형식으로 페이지 번호를 표시하세요. "
-                "슬라이드나 페이지의 큰 제목 또는 소제목이 나올 때마다 반드시 '## 제목명' 형식으로 표시하세요. "
-                "코드가 포함된 이미지나 코드 블록이 있으면 들여쓰기, 특수문자, 줄바꿈을 포함하여 한 글자도 빠짐없이 정확히 그대로 추출하세요. "
-                "표, 이미지, 그래프, 차트가 있으면 그 내용도 설명해주세요. "
-                "제목 표시(## ) 외에는 마크다운 형식 없이 순수 텍스트로만 출력하세요.",
-            ],
-        )
+          "이 PDF 문서의 전체 내용을 텍스트로 추출해주세요. "
+          "각 페이지가 시작될 때마다 반드시 '[N페이지]' 형식으로 페이지 번호를 표시하세요. "                                                                                           
+          "슬라이드나 페이지의 큰 제목 또는 소제목이 나올 때마다 반드시 '## 제목명' 형식으로 표시하세요. "                                                                             
+          "코드가 포함된 이미지나 코드 블록이 있으면 들여쓰기, 특수문자, 줄바꿈을 포함하여 한 글자도 빠짐없이 정확히 그대로 추출하세요. "                                              
+          "표, 이미지, 그래프, 차트가 있으면 그 내용도 설명해주세요. "                                                                                                                 
+          "제목 표시(## ) 외에는 마크다운 형식 없이 순수 텍스트로만 출력하세요.",                                                                                                      
+    ],                                                                                                                                                                               
+            config=types.GenerateContentConfig(                                                                                                                                              
+                temperature=EXTRACT_TEMPERATURE,                                                                                                                                             
+                top_p=EXTRACT_TOP_P,
+                top_k=EXTRACT_TOP_K,                                                                                                                                                         
+                max_output_tokens=EXTRACT_MAX_OUTPUT_TOKENS,
+      ),
+    )
         return response.text or ""
     finally:
         # 사용 후 임시 파일 및 업로드된 파일 삭제

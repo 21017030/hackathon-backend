@@ -33,3 +33,9 @@ CHUNK_SIZE = 1000            # RAG 인제스션 청크 크기 (문자 수)
 RAG_CHUNK_LIMIT = 6          # 벡터 검색 반환 청크 수
 HISTORY_LIMIT = 6            # 대화 히스토리 로드 개수
 REWRITE_HISTORY_WINDOW = 4   # 쿼리 재작성에 사용할 최근 대화 수
+
+# 이미지/PDF 추출 전용 생성 파라미터
+EXTRACT_TEMPERATURE = 0.0    # 환각 최소화 (기본값 1.0 → 0.0)                                                                                                                        
+EXTRACT_TOP_P = 0.95         # 상위 95% 확률 토큰만 샘플링                                                                                                                           
+EXTRACT_TOP_K = 40           # 상위 40개 토큰 후보만 사용                                                                                                                            
+EXTRACT_MAX_OUTPUT_TOKENS = 8192  # 긴 PDF 잘림 방지   
