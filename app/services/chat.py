@@ -280,7 +280,7 @@ async def ask_question(session_id: int, content: str, document_ids: Optional[Lis
         raise HTTPException(status_code=500, detail="AI 응답 생성 중 오류가 발생했습니다.")
 
 
-async def ask_about_document(document_id: int, content: str) -> dict:
+async def ask_about_document(document_id: int, content: str, allow_ai_answer: bool = False) -> dict:
     try:
         # 1. 사용자 메시지 저장
         supabase.table("document_chat_messages").insert({
@@ -305,13 +305,34 @@ async def ask_about_document(document_id: int, content: str) -> dict:
         # 4. 관련 청크 검색
         chunks = await get_relevant_chunks_with_sources(query_vector, [document_id])
         context = _build_context(chunks)
+        sources = _extract_sources(chunks)
+        filename = sources[0]['filename'] if sources else '문서'
 
         history_str = "\n".join([
             f"{'사용자' if m['sender_type'] == 'USER' else 'AI'}: {m['content'][:300]}"
             for m in history
         ])
 
-        prompt = f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
+        if allow_ai_answer:
+            prompt = f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
+아래 우선순위에 따라 답변하세요.
+
+1순위: [문서 내용]에서 답을 찾아 답변하세요.
+2순위: 문서에 없거나 내용이 부족하다면 AI 자신의 지식으로 완전하고 성실하게 답변하세요. 이 경우 답변 첫 문장을 반드시 아래 중 상황에 맞게 시작하세요:
+  - 문서에 내용이 전혀 없는 경우: "문서에 해당 내용이 없어 AI 지식으로 답변드립니다."
+  - 문서에 내용이 있지만 부족한 경우: "문서의 내용이 충분하지 않아 AI 지식으로 보완하여 답변드립니다."
+
+[문서 내용]
+{context}
+
+[이전 대화 내역]
+{history_str}
+
+질문: {content}
+
+답변:"""
+        else:
+            prompt = f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
 아래 [문서 내용]을 바탕으로 질문에 간결하게 답변하세요.
 자료에 없는 내용은 솔직하게 모른다고 말하세요.
 
@@ -326,7 +347,15 @@ async def ask_about_document(document_id: int, content: str) -> dict:
 답변:"""
 
         response = gemini_call(client.models.generate_content, model=CHAT_MODEL, contents=prompt)
-        answer = response.text or ""
+        answer = re.sub(r'\[이전 대화 내역\].*', '', response.text or "", flags=re.DOTALL).strip()
+
+        # AI 지식 사용 여부 판단
+        used_ai = allow_ai_answer and any(
+            phrase in answer for phrase in ["AI 지식으로 답변드립니다", "AI 지식으로 보완하여"]
+        )
+        final_sources: list = []
+        if used_ai:
+            final_sources = [{"filename": "AI 답변", "category": "AI 답변"}]
 
         # 5. AI 답변 저장
         supabase.table("document_chat_messages").insert({
@@ -335,7 +364,7 @@ async def ask_about_document(document_id: int, content: str) -> dict:
             "content": answer,
         }).execute()
 
-        return {"answer": answer, "sources": []}
+        return {"answer": answer, "sources": final_sources}
 
     except HTTPException:
         raise

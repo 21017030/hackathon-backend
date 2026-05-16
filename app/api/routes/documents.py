@@ -99,9 +99,10 @@ def clear_document_chat(document_id: int):
 async def ask_document(document_id: int, body: dict):
     """문서 내용 기반 질의응답 (특정 문서 1개에 대해 질문)"""
     content = body.get("content", "").strip()
+    allow_ai_answer = bool(body.get("allow_ai_answer", False))
     if not content:
         raise HTTPException(status_code=400, detail="질문을 입력해주세요.")
-    return await ask_about_document(document_id, content)
+    return await ask_about_document(document_id, content, allow_ai_answer)
 
 
 @router.delete("/{document_id}", status_code=204)
