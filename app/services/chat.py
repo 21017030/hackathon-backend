@@ -102,8 +102,6 @@ def _filter_used_sources(ai_answer: str, all_sources: list) -> tuple[str, list]:
     filtered = [s for s in all_sources if s['filename'] in used_names]
     if 'AI 답변' in used_names:
         filtered.append({"filename": "AI 답변", "category": "AI 답변"})
-    if '이전 대화' in used_names:
-        filtered.append({"filename": "이전 대화", "category": "이전 대화"})
     return cleaned, filtered
 
 
@@ -214,15 +212,13 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
 아래 우선순위에 따라 답변하세요.
 
 1순위: [강의자료 내용]에서 답을 찾아 답변하세요.
-2순위: 강의자료에 없다면 [이전 대화 내역]에 관련 내용이 있는지 확인하고 참고하세요. 이 경우 답변 첫 문장을 반드시 "강의자료에 해당 내용이 없어 이전 대화 내용을 참고하여 답변드립니다."로 시작하세요.
+2순위: 강의자료에 없다면 [이전 대화 내역]을 참고하여 답변하세요.
 3순위: 둘 다 없으면 솔직하게 모른다고 말하세요.
 
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
 
-답변 맨 끝에 출처를 아래 형식으로 표시하세요:
-- 강의자료를 참고한 경우: [참고자료: 파일명1|파일명2]
-- 이전 대화를 참고한 경우: [참고자료: 이전 대화]
-- 둘 다 참고한 경우: [참고자료: 파일명1|이전 대화]
+답변 맨 끝에 실제로 참고한 파일명만 아래 형식으로 추가하세요 (참고하지 않은 파일은 제외):
+[참고자료: 파일명1|파일명2]
 가능한 파일명: {filenames}
 
 [강의자료 내용]
