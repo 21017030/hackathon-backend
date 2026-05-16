@@ -1,7 +1,6 @@
 import logging
 import traceback
 import os
-import re
 import tempfile
 import fitz  # PyMuPDF
 from google.genai import types
@@ -42,10 +41,9 @@ def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
                 uploaded_file,
                 "이 PDF 문서의 전체 내용을 텍스트로 추출해주세요. "
                 "각 페이지가 시작될 때마다 반드시 '[N페이지]' 형식으로 페이지 번호를 표시하세요. "
-                "슬라이드나 페이지의 큰 제목 또는 소제목이 나올 때마다 반드시 '## 제목명' 형식으로 표시하세요. "
                 "코드가 포함된 이미지나 코드 블록이 있으면 들여쓰기, 특수문자, 줄바꿈을 포함하여 한 글자도 빠짐없이 정확히 그대로 추출하세요. "
                 "표, 이미지, 그래프, 차트가 있으면 그 내용도 설명해주세요. "
-                "제목 표시(## ) 외에는 마크다운 형식 없이 순수 텍스트로만 출력하세요.",
+                "마크다운 형식 없이 순수 텍스트로만 출력하세요.",
             ],
         )
         return response.text or ""
@@ -58,41 +56,6 @@ def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
                 client.files.delete(name=uploaded_file.name)
             except Exception:
                 pass
-
-
-def _section_aware_chunks(text: str, max_size: int) -> list[str]:
-    """섹션 제목(## ...)을 각 청크 앞에 붙여 검색 품질을 높임."""
-    current_heading = ""
-    chunks = []
-
-    # ## 제목 기준으로 분리 (구분자 자체도 결과에 포함)
-    parts = re.split(r'(^## .+$)', text, flags=re.MULTILINE)
-
-    for part in parts:
-        if re.match(r'^## .+$', part.strip()):
-            current_heading = part.strip()
-            continue
-
-        content = part.strip()
-        if not content:
-            continue
-
-        # 섹션 제목을 prefix로 붙인 뒤 max_size 단위로 분할
-        prefix = current_heading + "\n" if current_heading else ""
-        available = max_size - len(prefix)
-        if available <= 0:
-            available = max_size
-
-        for i in range(0, len(content), available):
-            piece = content[i:i + available].strip()
-            if piece:
-                chunks.append(prefix + piece)
-
-    # ## 마커가 없는 문서는 기존 고정 크기 청킹으로 폴백
-    if not chunks:
-        chunks = [text[i:i + max_size] for i in range(0, len(text), max_size)]
-
-    return chunks
 
 
 async def process_document_rag(document_id: int):
@@ -132,8 +95,8 @@ async def process_document_rag(document_id: int):
         if not text.strip():
             raise Exception("추출된 텍스트가 없습니다.")
 
-        # 텍스트 청킹 (섹션 제목 기반 분할로 검색 품질 향상)
-        chunks = _section_aware_chunks(text, CHUNK_SIZE)
+        # 텍스트 청킹 (고정 크기로 분할)
+        chunks = [text[i:i + CHUNK_SIZE] for i in range(0, len(text), CHUNK_SIZE)]
 
         # 각 청크에 대해 벡터 임베딩 생성 및 DB 저장
         for i, chunk_content in enumerate(chunks):
