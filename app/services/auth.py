@@ -62,12 +62,18 @@ def login_user(login_id: str, password: str) -> dict:
 def delete_user(user_id: str) -> None:
     """사용자 계정과 관련된 모든 데이터를 삭제합니다."""
     try:
-        docs = supabase.table("documents").select("id").eq("user_id", user_id).execute()
+        docs = supabase.table("documents").select("id, file_path").eq("user_id", user_id).execute()
         doc_ids = [d["id"] for d in (docs.data or [])]
+        file_paths = [d["file_path"] for d in (docs.data or []) if d.get("file_path")]
         if doc_ids:
             supabase.table("document_chat_messages").delete().in_("document_id", doc_ids).execute()
             supabase.table("document_chunks").delete().in_("document_id", doc_ids).execute()
             supabase.table("documents").delete().in_("id", doc_ids).execute()
+        if file_paths:
+            try:
+                supabase.storage.from_("documents").remove(file_paths)
+            except Exception as e:
+                logger.warning("스토리지 파일 삭제 실패 (DB는 삭제됨): %s", e)
 
         sessions = supabase.table("chat_sessions").select("id").eq("user_id", user_id).execute()
         session_ids = [s["id"] for s in (sessions.data or [])]
