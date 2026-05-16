@@ -184,6 +184,8 @@ async def _generate_embedding(text: str) -> List[float]:
     return res.embeddings[0].values
 
 
+CODE_RULE = "강의자료에 코드가 있으면 한 글자도 수정하지 말고 원문 그대로 코드 블록(```)으로 출력하세요. 절대 재작성하거나 변형하지 마세요."
+
 def _build_prompt(context: str, history_str: str, content: str, filenames: str, allow_ai_answer: bool = False) -> str:
     if allow_ai_answer:
         return f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
@@ -194,6 +196,7 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
   - 강의자료에 내용이 전혀 없는 경우: "강의자료에 해당 내용이 없어 AI 지식으로 답변드립니다."
   - 강의자료에 내용이 있지만 부족한 경우: "강의자료의 내용이 충분하지 않아 AI 지식으로 보완하여 답변드립니다."
 
+{CODE_RULE}
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
 
 답변 맨 끝에 실제로 활용한 출처만 아래 형식으로 표시하세요:
@@ -219,6 +222,7 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
 2순위: 강의자료에 없다면 [이전 대화 내역]을 참고하여 답변하세요.
 3순위: 둘 다 없으면 솔직하게 모른다고 말하세요.
 
+{CODE_RULE}
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
 
 답변에 실제로 활용한 강의자료가 있을 경우에만 답변 맨 끝에 아래 형식으로 추가하세요:
@@ -325,6 +329,8 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
   - 문서에 내용이 전혀 없는 경우: "문서에 해당 내용이 없어 AI 지식으로 답변드립니다."
   - 문서에 내용이 있지만 부족한 경우: "문서의 내용이 충분하지 않아 AI 지식으로 보완하여 답변드립니다."
 
+{CODE_RULE}
+
 [문서 내용]
 {context}
 
@@ -338,6 +344,8 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
             prompt = f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
 아래 [문서 내용]을 바탕으로 질문에 간결하게 답변하세요.
 자료에 없는 내용은 솔직하게 모른다고 말하세요.
+
+{CODE_RULE}
 
 [문서 내용]
 {context}
