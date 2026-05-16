@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.models.auth import RegisterRequest, LoginRequest, UserResponse, UpdateUserRequest
-from app.services.auth import register_user, login_user, check_login_id_available, update_user
+from app.services.auth import register_user, login_user, check_login_id_available, update_user, delete_user
 
 # 인증 관련 API 라우터 (회원가입, 로그인, 아이디 중복확인, 회원정보 수정)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,3 +40,9 @@ def update_profile(user_id: str, request: UpdateUserRequest):
         name=request.name,
         password=request.password,
     )
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def withdraw(user_id: str):
+    """사용자 계정과 모든 관련 데이터를 삭제합니다."""
+    delete_user(user_id)

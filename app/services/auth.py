@@ -59,6 +59,29 @@ def login_user(login_id: str, password: str) -> dict:
     return {"id": user["id"], "student_id": user["student_id"], "login_id": user["login_id"], "name": user["name"]}
 
 
+def delete_user(user_id: str) -> None:
+    """사용자 계정과 관련된 모든 데이터를 삭제합니다."""
+    try:
+        docs = supabase.table("documents").select("id").eq("user_id", user_id).execute()
+        doc_ids = [d["id"] for d in (docs.data or [])]
+        if doc_ids:
+            supabase.table("document_chat_messages").delete().in_("document_id", doc_ids).execute()
+            supabase.table("document_chunks").delete().in_("document_id", doc_ids).execute()
+            supabase.table("documents").delete().in_("id", doc_ids).execute()
+
+        sessions = supabase.table("chat_sessions").select("id").eq("user_id", user_id).execute()
+        session_ids = [s["id"] for s in (sessions.data or [])]
+        if session_ids:
+            supabase.table("chat_messages").delete().in_("session_id", session_ids).execute()
+            supabase.table("chat_sessions").delete().in_("id", session_ids).execute()
+
+        supabase.table("categories").delete().eq("user_id", user_id).execute()
+        supabase.table("users").delete().eq("id", user_id).execute()
+    except Exception as e:
+        logger.error("회원 탈퇴 실패: %s", e)
+        raise HTTPException(status_code=500, detail="회원 탈퇴 처리 중 오류가 발생했습니다.")
+
+
 def update_user(user_id: str, student_id: Optional[str] = None, login_id: Optional[str] = None, name: Optional[str] = None, password: Optional[str] = None) -> dict:
     """사용자 정보를 수정합니다. 변경된 필드만 DB에 반영합니다."""
     updates: dict = {}
