@@ -98,8 +98,10 @@ def _filter_used_sources(ai_answer: str, all_sources: list) -> tuple[str, list]:
     if not match:
         return ai_answer, []
     used_names = {f.strip() for f in match.group(1).split('|') if f.strip()}
-    filtered = [s for s in all_sources if s['filename'] in used_names]
     cleaned = re.sub(r'\[참고자료:[^\]]*\]', '', ai_answer).strip()
+    if 'AI 답변' in used_names:
+        return cleaned, [{"filename": "AI 답변", "category": "AI 답변"}]
+    filtered = [s for s in all_sources if s['filename'] in used_names]
     return cleaned, filtered
 
 
@@ -168,7 +170,27 @@ async def _generate_embedding(text: str) -> List[float]:
     return res.embeddings[0].values
 
 
-def _build_prompt(context: str, history_str: str, content: str, filenames: str) -> str:
+def _build_prompt(context: str, history_str: str, content: str, filenames: str, allow_ai_answer: bool = False) -> str:
+    if allow_ai_answer:
+        return f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
+제공된 [강의자료 내용]을 우선 참고하여 답변하세요.
+자료에서 답을 찾을 수 없다면 AI의 지식을 활용하여 성실하게 답변해주세요.
+페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
+
+답변 맨 끝에 출처를 아래 형식으로 표시하세요:
+- 강의자료를 참고한 경우: [참고자료: 파일명1|파일명2]
+- AI 지식으로 답변한 경우: [참고자료: AI 답변]
+가능한 파일명: {filenames}
+
+[강의자료 내용]
+{context}
+
+[이전 대화 내역]
+{history_str}
+
+사용자 질문: {content}
+
+답변:"""
     return f"""당신은 대학생의 학습을 돕는 AI 어시스턴트입니다.
 제공된 [강의자료 내용]을 바탕으로 사용자의 질문에 답변하세요.
 자료에서 답을 찾을 수 없다면 솔직하게 말하세요.
@@ -189,7 +211,7 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str) 
 답변:"""
 
 
-async def ask_question(session_id: int, content: str, document_ids: Optional[List[int]] = None):
+async def ask_question(session_id: int, content: str, document_ids: Optional[List[int]] = None, allow_ai_answer: bool = False):
     try:
         # 1. 과거 대화 내역 (현재 질문 저장 전에 조회)
         history = _load_history(session_id)
@@ -213,7 +235,7 @@ async def ask_question(session_id: int, content: str, document_ids: Optional[Lis
         # 5. 프롬프트 생성 및 답변
         history_str = "\n".join([f"{m['sender_type']}: {m['content']}" for m in history])
         filenames = "|".join(s['filename'] for s in sources)
-        prompt = _build_prompt(context, history_str, content, filenames)
+        prompt = _build_prompt(context, history_str, content, filenames, allow_ai_answer)
 
         logger.info(f"Prompting {CHAT_MODEL} for session {session_id}")
         response = gemini_call(client.models.generate_content, model=CHAT_MODEL, contents=prompt)

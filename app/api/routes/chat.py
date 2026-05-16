@@ -33,7 +33,7 @@ async def ask(request: ChatAskRequest):
     session_id에 메시지를 저장하고, 선택된 document_ids(문서들)의 내용을 기반으로 답변을 생성합니다.
     """
     try:
-        return await ask_question(request.session_id, request.content, request.document_ids)
+        return await ask_question(request.session_id, request.content, request.document_ids, request.allow_ai_answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

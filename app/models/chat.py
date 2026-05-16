@@ -19,6 +19,7 @@ class ChatAskRequest(BaseModel):
     session_id: int
     content: str # 질문 내용
     document_ids: Optional[List[int]] = None # 특정 문서만 검색하고 싶을 때
+    allow_ai_answer: bool = False # True면 자료에 없을 때 AI 자체 지식으로 답변 허용
 
 class ChatMessageResponse(BaseModel):
     """채팅 메시지 응답 스키마"""
