@@ -291,12 +291,14 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
 
         # 2. 대화 내역 로드
         history_res = supabase.table("document_chat_messages") \
-            .select("sender_type, content") \
+            .select("sender_type, content, sources") \
             .eq("document_id", document_id) \
             .order("created_at", desc=True) \
             .limit(HISTORY_LIMIT) \
             .execute()
         history = history_res.data[::-1]
+        if not allow_ai_answer:
+            history = _filter_ai_history(history)
 
         # 3. 쿼리 재작성 + 임베딩
         search_query = _rewrite_query(content, history)
@@ -362,6 +364,7 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
             "document_id": document_id,
             "sender_type": "AI",
             "content": answer,
+            "sources": final_sources,
         }).execute()
 
         return {"answer": answer, "sources": final_sources}
