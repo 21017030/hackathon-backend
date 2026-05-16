@@ -137,6 +137,17 @@ def _load_history(session_id: int, limit: int = HISTORY_LIMIT) -> list:
     return res.data[::-1]
 
 
+def _filter_ai_history(history: list) -> list:
+    """AI 지식으로 답변된 AI 메시지를 히스토리에서 제외."""
+    return [
+        msg for msg in history
+        if not (
+            msg.get('sender_type') == 'AI' and
+            any(s.get('filename') == 'AI 답변' for s in (msg.get('sources') or []))
+        )
+    ]
+
+
 def _save_message(session_id: int, sender_type: str, content: str, sources: list = None) -> dict:
     payload = {"session_id": session_id, "sender_type": sender_type, "content": content}
     if sources is not None:
@@ -229,6 +240,8 @@ async def ask_question(session_id: int, content: str, document_ids: Optional[Lis
     try:
         # 1. 과거 대화 내역 (현재 질문 저장 전에 조회)
         history = _load_history(session_id)
+        if not allow_ai_answer:
+            history = _filter_ai_history(history)
 
         # 2. 사용자 질문 저장
         logger.info(f"Saving user message to session {session_id}")
