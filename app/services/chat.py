@@ -99,9 +99,9 @@ def _filter_used_sources(ai_answer: str, all_sources: list) -> tuple[str, list]:
         return ai_answer, []
     used_names = {f.strip() for f in match.group(1).split('|') if f.strip()}
     cleaned = re.sub(r'\[참고자료:[^\]]*\]', '', ai_answer).strip()
-    if 'AI 답변' in used_names:
-        return cleaned, [{"filename": "AI 답변", "category": "AI 답변"}]
     filtered = [s for s in all_sources if s['filename'] in used_names]
+    if 'AI 답변' in used_names:
+        filtered.append({"filename": "AI 답변", "category": "AI 답변"})
     return cleaned, filtered
 
 
@@ -178,9 +178,14 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
 자료에 관련 내용이 일부만 있어도 AI 지식으로 보완하여 사용자가 충분히 이해할 수 있도록 설명하세요.
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
 
-답변 맨 끝에 출처를 반드시 아래 형식 중 하나로 표시하세요:
+AI 지식을 조금이라도 활용한 경우 반드시 답변 첫 문장에 아래 두 가지 중 상황에 맞는 문장으로 시작하세요:
+- 강의자료에 관련 내용이 전혀 없는 경우: "강의자료에 해당 내용이 없어 AI 지식으로 답변드립니다."
+- 강의자료에 내용이 있지만 부족한 경우: "강의자료의 내용이 충분하지 않아 AI 지식으로 보완하여 답변드립니다."
+
+답변 맨 끝에 출처를 반드시 아래 형식으로 표시하세요:
 - 강의자료만으로 완전히 답변한 경우: [참고자료: 파일명1|파일명2]
-- AI 지식을 활용한 경우(자료 보완 포함): [참고자료: AI 답변]
+- AI 지식을 조금이라도 활용한 경우: [참고자료: 파일명1|AI 답변] (강의자료도 참고했다면 파일명 포함)
+- 강의자료를 전혀 참고하지 않은 경우: [참고자료: AI 답변]
 가능한 파일명: {filenames}
 
 [강의자료 내용]
