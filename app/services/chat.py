@@ -41,8 +41,9 @@ async def get_relevant_chunks_with_sources(
     query_vector: List[float],
     document_ids: Optional[List[int]] = None,
     limit: int = RAG_CHUNK_LIMIT,
+    match_threshold: float = 0.5,
 ) -> list:
-    chunks = await get_relevant_chunks(query_vector, document_ids, limit)
+    chunks = await get_relevant_chunks(query_vector, document_ids, limit, match_threshold)
     if not chunks:
         return []
 
@@ -107,11 +108,11 @@ def _filter_used_sources(ai_answer: str, all_sources: list) -> tuple[str, list]:
     return cleaned, filtered
 
 
-async def get_relevant_chunks(query_vector: List[float], document_ids: Optional[List[int]] = None, limit: int = RAG_CHUNK_LIMIT):
+async def get_relevant_chunks(query_vector: List[float], document_ids: Optional[List[int]] = None, limit: int = RAG_CHUNK_LIMIT, match_threshold: float = 0.5):
     try:
         rpc_params = {
             "query_embedding": query_vector,
-            "match_threshold": 0.5,
+            "match_threshold": match_threshold,
             "match_count": limit,
         }
         if document_ids:
@@ -304,8 +305,8 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
         search_query = _rewrite_query(content, history)
         query_vector = await _generate_embedding(search_query)
 
-        # 4. 관련 청크 검색
-        chunks = await get_relevant_chunks_with_sources(query_vector, [document_id])
+        # 4. 관련 청크 검색 (단일 문서 특성상 임계값 낮추고 청크 수 늘림)
+        chunks = await get_relevant_chunks_with_sources(query_vector, [document_id], limit=10, match_threshold=0.3)
         context = _build_context(chunks)
         sources = _extract_sources(chunks)
         filename = sources[0]['filename'] if sources else '문서'
