@@ -94,6 +94,8 @@ def _extract_sources(chunks: list) -> list:
 
 def _filter_used_sources(ai_answer: str, all_sources: list) -> tuple[str, list]:
     """Gemini가 명시한 파일명만 출처로 필터링하고 마커를 답변에서 제거."""
+    # 프롬프트 구조 텍스트가 응답에 포함된 경우 제거
+    ai_answer = re.sub(r'\[이전 대화 내역\].*', '', ai_answer, flags=re.DOTALL).strip()
     match = re.search(r'\[참고자료:([^\]]*)\]', ai_answer)
     if not match:
         return ai_answer, []
