@@ -78,10 +78,7 @@ def _build_context(chunks: list) -> str:
         return "자료에서 관련 내용을 찾을 수 없습니다."
     parts = []
     for c in chunks:
-        label = f"[출처: {c['category']} > {c['filename']}"
-        if c.get('page'):
-            label += f" {c['page']}페이지"
-        label += "]"
+        label = f"[#ref: {c['filename']}]"
         parts.append(f"{label}\n{c['content']}")
     return "\n\n".join(parts)
 
@@ -204,6 +201,7 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
 
 {CODE_RULE}
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
+[강의자료 내용]의 [#ref: ...] 태그는 내부 식별자이므로 답변에 절대 포함하지 마세요.
 
 답변 맨 끝에 실제로 활용한 출처만 아래 형식으로 표시하세요:
 - 강의자료만으로 완전히 답변한 경우: [참고자료: 파일명1|파일명2]
@@ -230,6 +228,7 @@ def _build_prompt(context: str, history_str: str, content: str, filenames: str, 
 
 {CODE_RULE}
 페이지를 묻는 질문이라면 강의자료 내용의 페이지 표시를 참고하여 알려주세요.
+[강의자료 내용]의 [#ref: ...] 태그는 내부 식별자이므로 답변에 절대 포함하지 마세요.
 
 답변에 실제로 활용한 강의자료가 있을 경우에만 답변 맨 끝에 아래 형식으로 추가하세요:
 [참고자료: 파일명1|파일명2]
