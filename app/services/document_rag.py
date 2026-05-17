@@ -13,8 +13,6 @@ from app.core.gemini import (
 
 logger = logging.getLogger(__name__)
 
-_test_attempt_counts: dict[int, int] = {}  # TODO: 테스트용 — 삭제 예정
-
 
 def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
     """
@@ -127,10 +125,6 @@ async def process_document_rag(document_id: int):
     6. 문서 처리 상태 업데이트
     """
     try:
-        # TODO: 테스트용 — 첫 번째 시도는 실패, 두 번째부터 성공 (테스트 후 삭제)
-        _test_attempt_counts[document_id] = _test_attempt_counts.get(document_id, 0) + 1
-        if _test_attempt_counts[document_id] < 2:
-            raise Exception("테스트용 강제 실패 (재시도하면 성공)")
         # 문서 정보 조회
         res = supabase.table("documents").select("*").eq("id", document_id).single().execute()
         doc_data = res.data
