@@ -125,6 +125,7 @@ async def process_document_rag(document_id: int):
 
         # 텍스트 추출 시도
         text = ""
+        fallback_used = False
         try:
             text = _extract_pdf_gemini(file_bytes, doc_data["original_file_name"])
             logger.info(f"문서 {document_id} Gemini 멀티모달 추출 완료 ({len(text)}자)")
@@ -134,6 +135,7 @@ async def process_document_rag(document_id: int):
             with fitz.open(stream=file_bytes, filetype="pdf") as pdf:
                 for page in pdf:
                     text += page.get_text()
+            fallback_used = True
 
         if not text.strip():
             raise Exception("추출된 텍스트가 없습니다.")
@@ -162,8 +164,9 @@ async def process_document_rag(document_id: int):
                 "chunk_index": i
             }).execute()
 
-        # 처리 완료 상태로 업데이트
-        supabase.table("documents").update({"parsing_status": "COMPLETED"}).eq("id", document_id).execute()
+        # 처리 완료 상태로 업데이트 (폴백 사용 시 PARTIAL로 구분)
+        final_status = "PARTIAL" if fallback_used else "COMPLETED"
+        supabase.table("documents").update({"parsing_status": final_status}).eq("id", document_id).execute()
         logger.info(f"문서 {document_id} RAG 처리 완료")
 
     except Exception as e:
