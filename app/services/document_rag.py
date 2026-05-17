@@ -29,7 +29,7 @@ def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
 
         # 2. Gemini 클라우드 스토리지에 파일 업로드
         uploaded_file = client.files.upload(
-            path=tmp_path,
+            file=tmp_path,
             config=types.UploadFileConfig(
                 mime_type="application/pdf",
                 display_name=filename,
