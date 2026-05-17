@@ -335,6 +335,7 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
   - 문서에 내용이 있지만 부족한 경우: "문서의 내용이 충분하지 않아 AI 지식으로 보완하여 답변드립니다."
 
 {CODE_RULE}
+[문서 내용]의 [#ref: ...] 태그는 내부 식별자이므로 답변에 절대 포함하지 마세요.
 
 [문서 내용]
 {context}
@@ -351,6 +352,7 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
 자료에 없는 내용은 솔직하게 모른다고 말하세요.
 
 {CODE_RULE}
+[문서 내용]의 [#ref: ...] 태그는 내부 식별자이므로 답변에 절대 포함하지 마세요.
 
 [문서 내용]
 {context}
