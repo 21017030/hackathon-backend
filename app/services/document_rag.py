@@ -69,36 +69,49 @@ def _extract_pdf_gemini(file_bytes: bytes, filename: str) -> str:
 
 
 def _section_aware_chunks(text: str, max_size: int) -> list[str]:
-    """섹션 제목(## ...)을 각 청크 앞에 붙여 검색 품질을 높임."""
-    current_heading = ""
-    chunks = []
-
+    """섹션들을 max_size까지 합쳐서 청크를 만듦. 섹션이 max_size를 초과하면 분할."""
     parts = re.split(r'(^## .+$)', text, flags=re.MULTILINE)
 
+    sections = []
+    current_heading = ""
     for part in parts:
         if re.match(r'^## .+$', part.strip()):
             current_heading = part.strip()
-            continue
+        else:
+            content = part.strip()
+            if content:
+                sections.append((current_heading, content))
 
-        content = part.strip()
-        if not content:
-            continue
+    chunks = []
+    current_chunk = ""
 
-        prefix = current_heading + "\n" if current_heading else ""
-        available = max_size - len(prefix)
-        if available <= 0:
-            available = max_size
+    for heading, content in sections:
+        piece = (heading + "\n" + content).strip()
+        if not current_chunk:
+            current_chunk = piece
+        elif len(current_chunk) + len(piece) + 1 <= max_size:
+            current_chunk += "\n" + piece
+        else:
+            chunks.append(current_chunk)
+            current_chunk = piece
 
-        for i in range(0, len(content), available):
-            piece = content[i:i + available].strip()
-            if piece:
-                chunks.append(prefix + piece)
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    # 섹션 하나가 max_size 초과 시 고정 크기로 분할
+    result = []
+    for chunk in chunks:
+        if len(chunk) <= max_size:
+            result.append(chunk)
+        else:
+            for i in range(0, len(chunk), max_size):
+                result.append(chunk[i:i + max_size])
 
     # ## 마커가 없는 문서는 고정 크기 청킹으로 폴백
-    if not chunks:
-        chunks = [text[i:i + max_size] for i in range(0, len(text), max_size)]
+    if not result:
+        result = [text[i:i + max_size] for i in range(0, len(text), max_size)]
 
-    return chunks
+    return result
 
 
 async def process_document_rag(document_id: int):
