@@ -187,6 +187,17 @@ async def _generate_embedding(text: str) -> List[float]:
     return res.embeddings[0].values
 
 
+def _decode_hex_escapes(text: str) -> str:
+    """Gemini가 출력한 <0xHH> 바이트 이스케이프를 실제 유니코드 문자로 변환."""
+    def replace(m):
+        hex_bytes = re.findall(r'<0x([0-9A-Fa-f]{2})>', m.group(0))
+        try:
+            return bytes.fromhex(''.join(hex_bytes)).decode('utf-8')
+        except Exception:
+            return m.group(0)
+    return re.sub(r'(?:<0x[0-9A-Fa-f]{2}>)+', replace, text)
+
+
 CODE_RULE = "강의자료에 코드가 있으면 한 글자도 수정하지 말고 원문 그대로 코드 블록(```)으로 출력하세요. 절대 재작성하거나 변형하지 마세요."
 
 def _build_prompt(context: str, history_str: str, content: str, filenames: str, allow_ai_answer: bool = False) -> str:
@@ -276,7 +287,7 @@ async def ask_question(session_id: int, content: str, document_ids: Optional[Lis
 
         logger.info(f"Prompting {CHAT_MODEL} for session {session_id}")
         response = gemini_call(client.models.generate_content, model=CHAT_MODEL, contents=prompt)
-        ai_answer, sources = _filter_used_sources(response.text, sources)
+        ai_answer, sources = _filter_used_sources(_decode_hex_escapes(response.text), sources)
 
         # 6. AI 답변 저장
         logger.info(f"Saving AI response to session {session_id}")
@@ -365,7 +376,7 @@ async def ask_about_document(document_id: int, content: str, allow_ai_answer: bo
 답변:"""
 
         response = gemini_call(client.models.generate_content, model=CHAT_MODEL, contents=prompt)
-        answer = re.sub(r'\[이전 대화 내역\].*', '', response.text or "", flags=re.DOTALL).strip()
+        answer = re.sub(r'\[이전 대화 내역\].*', '', _decode_hex_escapes(response.text or ""), flags=re.DOTALL).strip()
 
         # AI 지식 사용 여부 판단
         used_ai = allow_ai_answer and any(
