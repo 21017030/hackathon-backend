@@ -105,6 +105,19 @@ async def ask_document(document_id: int, body: dict):
     return await ask_about_document(document_id, content, allow_ai_answer)
 
 
+@router.post("/{document_id}/retry")
+async def retry_document(document_id: int, background_tasks: BackgroundTasks):
+    """FAILED 문서의 RAG 처리를 다시 시도합니다."""
+    res = supabase.table("documents").select("parsing_status").eq("id", document_id).single().execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
+    if res.data["parsing_status"] not in ("FAILED", "PARTIAL"):
+        raise HTTPException(status_code=400, detail="재시도는 FAILED 또는 PARTIAL 상태의 문서만 가능합니다.")
+    supabase.table("documents").update({"parsing_status": "PENDING"}).eq("id", document_id).execute()
+    background_tasks.add_task(process_document_rag, document_id)
+    return {"message": "재처리를 시작했습니다."}
+
+
 @router.delete("/{document_id}", status_code=204)
 def remove_document(document_id: int):
     """문서 삭제"""

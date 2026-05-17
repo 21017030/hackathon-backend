@@ -125,6 +125,7 @@ async def process_document_rag(document_id: int):
     6. 문서 처리 상태 업데이트
     """
     try:
+        raise Exception("테스트용 강제 실패")  # TODO: 테스트 후 삭제
         # 문서 정보 조회
         res = supabase.table("documents").select("*").eq("id", document_id).single().execute()
         doc_data = res.data
@@ -155,6 +156,9 @@ async def process_document_rag(document_id: int):
 
         # 텍스트 청킹 (섹션 제목 기반 분할로 검색 품질 향상)
         chunks = _section_aware_chunks(text, CHUNK_SIZE)
+
+        # 기존 청크 삭제 (실패 후 재처리 시 중복 방지)
+        supabase.table("document_chunks").delete().eq("document_id", document_id).execute()
 
         # 각 청크에 대해 벡터 임베딩 생성 및 DB 저장
         for i, chunk_content in enumerate(chunks):
